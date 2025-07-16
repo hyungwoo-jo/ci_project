@@ -1,0 +1,14 @@
+--- Simulation Performance Summary (with Unknown Confounder) ---
+[1] "Number of Simulations: 10"
+[1] "Sample Size (n): 500"
+[1] "True Average Treatment Effect (ATE): 5"
+                      Method Mean_ATE     Bias Std_Dev_ATE Coverage_Rate
+1              I. Regression 7.350654 2.350654   0.5768858             0
+2                    II. PSM 7.853884 2.853884   0.6616436             0
+3 III. Matching + Regression 7.391589 2.391589   0.5183098             0
+4 IV. Double Robust (Manual) 7.237749 2.237749   0.5442418             0
+5            V. DML (Ranger) 7.350103 2.350103   0.4440861             0
+6          VI. Causal Forest 7.502688 2.502688   0.3706578             0
+7                  VII. BART 7.251561 2.251561   0.3631906             0
+8            VIII. X-learner 7.694895 2.694895   0.4453527             0
+9             IX. DML (BART) 7.363997 2.363997   0.3552851             0
