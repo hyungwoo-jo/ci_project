@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------
-# 0. 패키지 설치 (최초 1회만 실행)
+# 0. Package Installation (Run only once)
 # -------------------------------------------------------------------
 # install.packages(c("tidyverse", "MatchIt", "cobalt", "DoubleML", "mlr3", "mlr3learners", "ranger", "future", "progress", "grf", "bartCause", "mlr3extralearners"))
 install.packages("remotes")
 remotes::install_github("mlr-org/mlr3extralearners@*release")
 
 # -------------------------------------------------------------------
-# 1. 패키지 로드
+# 1. Load Packages
 # -------------------------------------------------------------------
 library(tidyverse)
 library(MatchIt)
@@ -22,16 +22,16 @@ library(bartCause)
 library(mlr3extralearners)
 
 # -------------------------------------------------------------------
-# 2. 병렬 처리 설정
+# 2. Parallel Processing Setup
 # -------------------------------------------------------------------
-# N100 CPU (4코어) 환경에 맞춰 사용할 워커 수를 3으로 지정합니다.
+# Specify 3 workers for an N100 CPU (4 cores) environment.
 future::plan("multisession", workers = 3)
 
 # -------------------------------------------------------------------
-# 3. 시뮬레이션 함수 정의
+# 3. Define Simulation Function
 # -------------------------------------------------------------------
 run_one_simulation <- function(sim_id, n, true_ate) {
-  # 데이터 생성 (HTE 없음)
+  # Data Generation (No HTE)
   X1 <- rnorm(n, 0, 1)
   X2 <- rnorm(n, 0, 1)
   X3 <- runif(n, -3, 3)
@@ -45,7 +45,7 @@ run_one_simulation <- function(sim_id, n, true_ate) {
   sim_data <- data.frame(X1, X2, X3, X4, T, Y)
   X_vars <- c("X1", "X2", "X3", "X4")
 
-  # 결과를 저장할 데이터프레임 미리 생성
+  # Pre-create dataframe to store results
   method_names <- c("dml_bart")
   results_df <- data.frame(
     sim_id = rep(sim_id, length(method_names)),
@@ -55,7 +55,7 @@ run_one_simulation <- function(sim_id, n, true_ate) {
     upper_ci = NA_real_
   )
   
-  # --- 방법론 적용 ---
+  # --- Apply Methodologies ---
   
   # IX: DML (BART)
   try({
@@ -72,7 +72,7 @@ run_one_simulation <- function(sim_id, n, true_ate) {
 }
 
 # -------------------------------------------------------------------
-# 4. 시뮬레이션 실행
+# 4. Run Simulation
 # -------------------------------------------------------------------
 set.seed(2025)
 n_simulations <- 100
@@ -93,7 +93,7 @@ final_results_df <- do.call(rbind, all_results) %>%
   unnest(cols = c(Estimated_ATE, lower_ci, upper_ci))
 
 # -------------------------------------------------------------------
-# 5. 성능 지표 계산 및 결과 요약
+# 5. Calculate Performance Metrics and Summarize Results
 # -------------------------------------------------------------------
 summary_stats <- final_results_df %>%
   group_by(Method) %>%
@@ -112,14 +112,14 @@ summary_stats <- final_results_df %>%
                               "IX. DML (BART)")) %>%
   arrange(Method)
 
-# --- 콘솔 출력 ---
+# --- Console Output ---
 cat("\n--- Simulation Performance Summary ---\n")
 print(paste("Number of Simulations:", n_simulations))
 print(paste("Sample Size (n):", n_obs))
 print(paste("True Average Treatment Effect (ATE):", true_ate))
 print(as.data.frame(summary_stats))
 
-# --- 파일 저장 ---
+# --- Save to File ---
 sink("dml_bart_summary_results.txt")
 cat("--- Simulation Performance Summary ---\n")
 print(paste("Number of Simulations:", n_simulations))

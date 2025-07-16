@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------
-# 0. 패키지 설치 (최초 1회만 실행)
+# 0. Package Installation (Run only once)
 # -------------------------------------------------------------------
 # install.packages(c("tidyverse", "MatchIt", "cobalt", "DoubleML", "mlr3", "mlr3learners", "ranger", "future", "progress", "grf", "bartCause", "mlr3extralearners"))
 install.packages("remotes")
 remotes::install_github("mlr-org/mlr3extralearners@*release")
 
 # -------------------------------------------------------------------
-# 1. 패키지 로드
+# 1. Load Packages
 # -------------------------------------------------------------------
 library(tidyverse)
 library(MatchIt)
@@ -22,16 +22,16 @@ library(bartCause)
 library(mlr3extralearners)
 
 # -------------------------------------------------------------------
-# 2. 병렬 처리 설정
+# 2. Parallel Processing Setup
 # -------------------------------------------------------------------
-# N100 CPU (4코어) 환경에 맞춰 사용할 워커 수를 3으로 지정합니다.
+# Specify 3 workers for an N100 CPU (4 cores) environment.
 future::plan("multisession", workers = 3)
 
 # -------------------------------------------------------------------
-# 3. 시뮬레이션 함수 정의
+# 3. Define Simulation Function
 # -------------------------------------------------------------------
 run_one_simulation <- function(sim_id, n, true_ate) {
-  # 데이터 생성 (HTE 없음)
+  # Data Generation (No HTE)
   X1 <- rnorm(n, 0, 1)
   X2 <- rnorm(n, 0, 1)
   X3 <- runif(n, -3, 3)
@@ -45,7 +45,7 @@ run_one_simulation <- function(sim_id, n, true_ate) {
   sim_data <- data.frame(X1, X2, X3, X4, T, Y)
   X_vars <- c("X1", "X2", "X3", "X4")
 
-  # 결과를 저장할 데이터프레임 미리 생성
+  # Pre-create dataframe to store results
   method_names <- c("reg", "psm", "match_reg", "dr_manual", "dml", "cf", "bart", "xl", "dml_bart")
   results_df <- data.frame(
     sim_id = rep(sim_id, length(method_names)),
@@ -55,9 +55,9 @@ run_one_simulation <- function(sim_id, n, true_ate) {
     upper_ci = NA_real_
   )
   
-  # --- 방법론 적용 ---
+  # --- Apply Methodologies ---
   
-  # I: 결과 회귀분석
+  # I: Outcome Regression
   try({
     outcome_model <- lm(Y ~ T + X1 + X2 + X3 + X4, data = sim_data)
     res <- c(coef(outcome_model)["T"], confint(outcome_model, "T"))
@@ -73,14 +73,14 @@ run_one_simulation <- function(sim_id, n, true_ate) {
     results_df[results_df$Method == "psm", 3:5] <- res
   }, silent = TRUE)
 
-  # III: 매칭 후 회귀분석
+  # III: Matching with Regression
   try({
     adj_model <- lm(Y ~ T + X1 + X2 + X3 + X4, data = matched_sample)
     res <- c(coef(adj_model)["T"], confint(adj_model, "T"))
     results_df[results_df$Method == "match_reg", 3:5] <- res
   }, silent = TRUE)
 
-  # IV: 이중 강건 추정법 (수동)
+  # IV: Doubly Robust Estimation (Manual)
   try({
     ps_model <- glm(T ~ X1 + X2 + X3 + X4, data = sim_data, family = "binomial")
     ps_manual <- predict(ps_model, type = "response")
@@ -157,8 +157,8 @@ run_one_simulation <- function(sim_id, n, true_ate) {
   # IX: DML (BART)
   try({
     dml_data_ml_bart <- DoubleMLData$new(data = sim_data, y_col = "Y", d_cols = "T", x_cols = X_vars)
-    # mlr3extralearners에서 BART Learner를 로드합니다.
-    # regr.bart와 classif.bart는 mlr3extralearners에 포함되어 있습니다.
+    # Load BART Learner from mlr3extralearners.
+    # regr.bart and classif.bart are included in mlr3extralearners.
     ml_l_bart_dml <- lrn("regr.bart")
     ml_m_bart_dml <- lrn("classif.bart")
     dml_model_ml_bart <- DoubleMLPLR$new(data = dml_data_ml_bart, ml_l = ml_l_bart_dml, ml_m = ml_m_bart_dml, n_folds = 5)
@@ -171,7 +171,7 @@ run_one_simulation <- function(sim_id, n, true_ate) {
 }
 
 # -------------------------------------------------------------------
-# 4. 시뮬레이션 실행
+# 4. Run Simulation
 # -------------------------------------------------------------------
 set.seed(2025)
 n_simulations <- 100
@@ -192,7 +192,7 @@ final_results_df <- do.call(rbind, all_results) %>%
   unnest(cols = c(Estimated_ATE, lower_ci, upper_ci))
 
 # -------------------------------------------------------------------
-# 5. 성능 지표 계산 및 결과 요약
+# 5. Calculate Performance Metrics and Summarize Results
 # -------------------------------------------------------------------
 summary_stats <- final_results_df %>%
   group_by(Method) %>%
@@ -221,14 +221,14 @@ summary_stats <- final_results_df %>%
                               "VI. Causal Forest", "VII. BART", "VIII. X-learner", "IX. DML (BART)")) %>%
   arrange(Method)
 
-# --- 콘솔 출력 ---
+# --- Console Output ---
 cat("\n--- Simulation Performance Summary ---\n")
 print(paste("Number of Simulations:", n_simulations))
 print(paste("Sample Size (n):", n_obs))
 print(paste("True Average Treatment Effect (ATE):", true_ate))
 print(as.data.frame(summary_stats))
 
-# --- 파일 저장 ---
+# --- Save to File ---
 sink("simulation_summary_results.txt")
 cat("--- Simulation Performance Summary ---\n")
 print(paste("Number of Simulations:", n_simulations))
@@ -239,7 +239,7 @@ sink()
 cat("\nSummary results saved to simulation_summary_results.txt\n")
 
 # -------------------------------------------------------------------
-# 6. 결과 시각화 (Boxplot)
+# 6. Visualize Results (Boxplot)
 # -------------------------------------------------------------------
 p <- ggplot(final_results_df, aes(x = fct_reorder(Method, Estimated_ATE, .fun=median, .desc=FALSE, .na_rm = TRUE), y = Estimated_ATE, fill = Method)) +
   geom_boxplot(alpha = 0.7) +

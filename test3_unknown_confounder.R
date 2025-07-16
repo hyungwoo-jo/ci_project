@@ -1,12 +1,12 @@
 # -------------------------------------------------------------------
-# 0. 패키지 설치 (최초 1회만 실행)
+# 0. Package Installation (Run only once)
 # -------------------------------------------------------------------
 # install.packages(c("tidyverse", "MatchIt", "cobalt", "DoubleML", "mlr3", "mlr3learners", "ranger", "future", "progress", "grf", "bartCause", "mlr3extralearners"))
 # install.packages("remotes")
 # remotes::install_github("mlr-org/mlr3extralearners@*release")
 
 # -------------------------------------------------------------------
-# 1. 패키지 로드
+# 1. Load Packages
 # -------------------------------------------------------------------
 library(tidyverse)
 library(MatchIt)
@@ -22,22 +22,22 @@ library(bartCause)
 library(mlr3extralearners)
 
 # -------------------------------------------------------------------
-# 2. 병렬 처리 설정
+# 2. Parallel Processing Setup
 # -------------------------------------------------------------------
 future::plan("multisession", workers = 20)
 
 # -------------------------------------------------------------------
-# 3. 시뮬레이션 함수 정의
+# 3. Define Simulation Function
 # -------------------------------------------------------------------
 run_one_simulation <- function(sim_id, n, true_ate) {
-  # 데이터 생성 (관측되지 않는 교란변수 U 추가)
+  # Data Generation (with Unobserved Confounder U)
   X1 <- rnorm(n, 0, 1)
   X2 <- rnorm(n, 0, 1)
   X3 <- runif(n, -3, 3)
   X4 <- rbinom(n, 1, 0.5)
-  U <- rnorm(n, 0, 1)  # <- 관측되지 않는 교란변수 (Unobserved Confounder)
+  U <- rnorm(n, 0, 1)  # U is an unobserved confounder
   
-  # U가 T와 Y 모두에 영향을 미치도록 설정
+  # U affects both T and Y
   ps_true_logit <- 0.4*X1 - 0.6*(X2^3) + 0.8*X1*X2 - 0.1*(X3^2) + 0.7*U - 0.5
   ps_true <- plogis(ps_true_logit)
   T <- rbinom(n, 1, ps_true)
@@ -48,10 +48,10 @@ run_one_simulation <- function(sim_id, n, true_ate) {
   
   sim_data <- data.frame(X1, X2, X3, X4, U, T, Y)
   
-  # 모델에는 U를 포함하지 않음 (관측되지 않았다고 가정)
+  # U is not included in the model (assumed unobserved)
   X_vars <- c("X1", "X2", "X3", "X4")
 
-  # 결과를 저장할 데이터프레임 미리 생성
+  # Pre-create dataframe to store results
   method_names <- c("reg", "psm", "match_reg", "dr_manual", "dml", "cf", "bart", "xl", "dml_bart")
   results_df <- data.frame(
     sim_id = rep(sim_id, length(method_names)),
@@ -61,9 +61,9 @@ run_one_simulation <- function(sim_id, n, true_ate) {
     upper_ci = NA_real_
   )
   
-  # --- 방법론 적용 ---
+  # --- Apply Methodologies ---
   
-  # I: 결과 회귀분석
+  # I: Outcome Regression
   try({
     outcome_model <- lm(Y ~ T + X1 + X2 + X3 + X4, data = sim_data)
     res <- c(coef(outcome_model)["T"], confint(outcome_model, "T"))
@@ -79,14 +79,14 @@ run_one_simulation <- function(sim_id, n, true_ate) {
     results_df[results_df$Method == "psm", 3:5] <- res
   }, silent = TRUE)
 
-  # III: 매칭 후 회귀분석
+  # III: Matching with Regression
   try({
     adj_model <- lm(Y ~ T + X1 + X2 + X3 + X4, data = matched_sample)
     res <- c(coef(adj_model)["T"], confint(adj_model, "T"))
     results_df[results_df$Method == "match_reg", 3:5] <- res
   }, silent = TRUE)
 
-  # IV: 이중 강건 추정법 (수동)
+  # IV: Doubly Robust Estimation (Manual)
   try({
     ps_model <- glm(T ~ X1 + X2 + X3 + X4, data = sim_data, family = "binomial")
     ps_manual <- predict(ps_model, type = "response")
@@ -174,7 +174,7 @@ run_one_simulation <- function(sim_id, n, true_ate) {
 }
 
 # -------------------------------------------------------------------
-# 4. 시뮬레이션 실행
+# 4. Run Simulation
 # -------------------------------------------------------------------
 set.seed(2025)
 n_simulations <- 100
@@ -195,7 +195,7 @@ final_results_df <- do.call(rbind, all_results) %>%
   unnest(cols = c(Estimated_ATE, lower_ci, upper_ci))
 
 # -------------------------------------------------------------------
-# 5. 성능 지표 계산 및 결과 요약
+# 5. Calculate Performance Metrics and Summarize Results
 # -------------------------------------------------------------------
 summary_stats <- final_results_df %>%
   group_by(Method) %>%
@@ -224,7 +224,7 @@ summary_stats <- final_results_df %>%
                               "VI. Causal Forest", "VII. BART", "VIII. X-learner", "IX. DML (BART)")) %>%
   arrange(Method)
 
-# --- 콘솔 출력 ---
+# --- Console Output ---
 cat("
 --- Simulation Performance Summary (with Unknown Confounder) ---
 ")
@@ -233,7 +233,7 @@ print(paste("Sample Size (n):", n_obs))
 print(paste("True Average Treatment Effect (ATE):", true_ate))
 print(as.data.frame(summary_stats))
 
-# --- 파일 저장 ---
+# --- Save to File ---
 sink("simulation_summary_results_uc.txt")
 cat("--- Simulation Performance Summary (with Unknown Confounder) ---
 ")
@@ -247,7 +247,7 @@ Summary results saved to simulation_summary_results_uc.txt
 ")
 
 # -------------------------------------------------------------------
-# 6. 결과 시각화 (Boxplot)
+# 6. Visualize Results (Boxplot)
 # -------------------------------------------------------------------
 p <- ggplot(final_results_df, aes(x = fct_reorder(Method, Estimated_ATE, .fun=median, .desc=FALSE, .na_rm = TRUE), y = Estimated_ATE, fill = Method)) +
   geom_boxplot(alpha = 0.7) +
