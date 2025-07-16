@@ -1,6 +1,6 @@
 --- Simulation Performance Summary ---
-[1] "Number of Simulations: 10"
-[1] "Sample Size (n): 500"
+[1] "Number of Simulations: 100"
+[1] "Sample Size (n): 5000"
 [1] "True Average Treatment Effect (ATE): 5"
                       Method Mean_ATE         Bias Std_Dev_ATE Coverage_Rate
 1              I. Regression 5.005036  0.005035837   0.4469674           0.9
@@ -11,4 +11,4 @@
 6          VI. Causal Forest 5.048599  0.048599190   0.2566260           1.0
 7                  VII. BART 4.798606 -0.201393897   0.1456037           1.0
 8            VIII. X-learner 5.256024  0.256024161   0.4447412           0.1
-9             IX. DML (BART) 4.845906 -0.154094176   0.1819034           1.0
+9             IX. DML (BART) 5.005576  0.005575514  0.06971916          0.95
