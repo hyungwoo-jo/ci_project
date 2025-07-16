@@ -1,6 +1,6 @@
 --- Simulation Performance Summary ---
-[1] "Number of Simulations: 100"
-[1] "Sample Size (n): 5000"
+[1] "Number of Simulations: 10"
+[1] "Sample Size (n): 500"
 [1] "True Average Treatment Effect (ATE): 5"
-          Method Mean_ATE Bias Std_Dev_ATE Coverage_Rate
-1 IX. DML (BART)      NaN  NaN          NA           NaN
+          Method Mean_ATE       Bias Std_Dev_ATE Coverage_Rate
+1 IX. DML (BART) 4.892936 -0.1070639   0.3130937           0.9

@@ -174,8 +174,8 @@ run_one_simulation <- function(sim_id, n, true_ate) {
 # 4. 시뮬레이션 실행
 # -------------------------------------------------------------------
 set.seed(2025)
-n_simulations <- 10
-n_obs <- 500
+n_simulations <- 100
+n_obs <- 5000
 true_ate <- 5
 
 pb <- progress_bar$new(
@@ -194,7 +194,7 @@ final_results_df <- do.call(rbind, all_results) %>%
 # -------------------------------------------------------------------
 # 5. 성능 지표 계산 및 결과 요약
 # -------------------------------------------------------------------
-sn_summary_stats <- final_results_df %>%
+summary_stats <- final_results_df %>%
   group_by(Method) %>%
   summarise(
     Mean_ATE = mean(Estimated_ATE, na.rm = TRUE),
