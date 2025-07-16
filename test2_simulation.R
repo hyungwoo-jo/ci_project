@@ -174,8 +174,8 @@ run_one_simulation <- function(sim_id, n, true_ate) {
 # 4. 시뮬레이션 실행
 # -------------------------------------------------------------------
 set.seed(2025)
-n_simulations <- 100
-n_obs <- 5000
+n_simulations <- 10
+n_obs <- 500
 true_ate <- 5
 
 pb <- progress_bar$new(
